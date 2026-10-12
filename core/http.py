@@ -33,7 +33,7 @@ def _redact_url(url):
         # IPQualityScore's API puts its key in the path: /api/json/phone/<key>/<number>
         host_path = re.sub(
             r"(/api/json/phone/)[^/]+(/)",
-            r"\1[REDACTED]\2",
+            r"\1[REDACTED]/[REDACTED]",
             host_path,
             flags=re.I,
         )
