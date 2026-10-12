@@ -49,6 +49,7 @@ def test_redirect_target_is_revalidated(monkeypatch):
         lambda url: (False, "non-public IP") if "127.0.0.1" in url else (True, "ok"),
     )
 
+    monkeypatch.setitem(http.CONFIG["http"], "retries", 0)
     with pytest.raises(http.UnsafeURL):
-        http.safe_get("https://public.example/path", retries=0)
+        http.safe_get("https://public.example/path")
     assert session.calls == 1
