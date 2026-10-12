@@ -6,10 +6,12 @@ from core.security import is_private_ip, is_safe_url, archive_is_suspicious
 
 
 def test_private_ip():
-    assert is_private_ip("127.0.0.1")
-    assert is_private_ip("10.0.0.5")
-    assert is_private_ip("192.168.1.1")
-    assert is_private_ip("172.16.10.10")
+    for address in (
+        "127.0.0.1", "10.0.0.5", "192.168.1.1", "172.16.10.10",
+        "::1", "fc00::1", "fe80::1", "169.254.169.254",
+        "::ffff:127.0.0.1", "192.0.2.1",
+    ):
+        assert is_private_ip(address)
     assert not is_private_ip("8.8.8.8")
     assert not is_private_ip("1.1.1.1")
 
@@ -19,12 +21,19 @@ def test_safe_url_blocks_localhost():
     assert not ok
     ok, _ = is_safe_url("http://127.0.0.1/")
     assert not ok
+    ok, _ = is_safe_url("http://[::ffff:127.0.0.1]/")
+    assert not ok
 
 
 def test_safe_url_scheme():
     ok, _ = is_safe_url("file:///etc/passwd")
     assert not ok
     ok, _ = is_safe_url("gopher://evil")
+    assert not ok
+
+
+def test_safe_url_rejects_credentials():
+    ok, _ = is_safe_url("https://user:password@example.com/")
     assert not ok
 
 
@@ -40,7 +49,6 @@ def test_archive_ok():
     assert not bad
 
 
-def test_path_traversal_detected():
-    members = [("../etc/passwd", 10)]
-    bad, _ = archive_is_suspicious(members, 50)
-    assert bad
+def test_archive_path_traversal_detected():
+    assert archive_is_suspicious([("../etc/passwd", 10)], 50)[0]
+    assert archive_is_suspicious([("..\\etc\\passwd", 10)], 50)[0]
