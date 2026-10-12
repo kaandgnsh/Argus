@@ -134,6 +134,24 @@ def _cli(args):
         ui_mod.Kırmızı = ui_mod.Yeşil = ui_mod.Sarı = ui_mod.Beyaz = ""
         ui_mod.Mor = ui_mod.Cyan = ui_mod.Kalın = ui_mod.AltıÇizili = ui_mod.Bitir = ""
 
+    if args.list_tools:
+        from core.tools import list_tools
+        list_tools()
+        return
+
+    if args.install_tools is not None:
+        from core.tools import install, list_tools
+        if args.install_tools == "all":
+            list_tools()
+        else:
+            install(args.install_tools, confirm=True)
+        return
+
+    if args.debug:
+        import logging
+        from core.logger import get_logger
+        get_logger().setLevel(logging.DEBUG)
+
     if args.clear_cache:
         from core.cache import clear
         clear()
