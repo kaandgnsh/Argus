@@ -8,7 +8,16 @@ Kamuya açık kaynaklardan bilgi toplamak, bulguları ilişkilendirmek ve yerel 
 ![Tests](https://github.com/kaandgnsh/Argus/actions/workflows/tests.yml/badge.svg)
 
 > [!WARNING]
-> ARGUS'u yalnızca yetkili olduğun hedeflerde ve kullanımına izin verilen verilerle çalıştır. Telefon sorguları, yapılandırmaya göre numarayı üçüncü taraf API'lerine ve arama sağlayıcılarına iletebilir. Hassas veri girmeden önce **Gizlilik ve güvenlik** bölümünü oku.
+> **Eğitim ve güvenlik araştırması amaçlıdır.** ARGUS'u kendi laboratuvarında veya açıkça yetkilendirildiğin sistemlerde kullan. Telefon, e-posta, kullanıcı adı ve diğer kişisel veriler üçüncü taraflara iletilebilir. Verinin internette herkese açık olması, onu sınırsız toplama, ilişkilendirme veya yayımlama izni vermez. Yetkisiz erişim, gözetleme, taciz ya da güvenlik kontrollerini aşma amacıyla kullanma.
+
+## ⚖️ Eğitim amacı ve sorumluluk
+
+ARGUS; yazılım geliştirme, OSINT yöntemlerini öğrenme ve izinli güvenlik araştırmalarını desteklemek için hazırlanmış bir eğitim projesidir. Bir profesyonel danışmanlık hizmeti veya hukuki tavsiye değildir.
+
+- Yalnızca kendi verilerin, kontrollü laboratuvar ortamların veya açıkça izin aldığın hedefler üzerinde kullan.
+- Sorgular üçüncü taraf servislerine istek gönderebilir; veri saklama politikalarını ve hedeflerin kullanım koşullarını incele.
+- Bulguları doğrula; otomatik eşleştirmeler yanlış pozitif üretebilir.
+- Bu uyarı tek başına yasal sorumluluktan muafiyet sağlamaz. Kullanımın yürürlükteki mevzuata, gizlilik kurallarına ve servis koşullarına uygunluğunu sağlamak kullanıcıya aittir.
 
 ## ✨ Özellikler
 
@@ -214,4 +223,4 @@ MIT License. Ayrıntılar için [LICENSE](LICENSE) dosyasına bak.
 
 ## 👤 Yazar
 
-**KaanDGN** · [GitHub](https://github.com/kaandgnsh) · [Instagram](https://instagram.com/kaandgn.sh)
+**Kaan DOĞAN** · [GitHub](https://github.com/kaandgnsh) · [LinkedIn](https://www.linkedin.com/in/kaan-do%C4%9Fan-911663280/) · [Instagram](https://instagram.com/kaandgn.sh)
