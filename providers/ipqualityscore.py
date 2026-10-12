@@ -4,10 +4,9 @@
 
 """IPQualityScore (IPQS) — telefon doğrulama, fraud skoru, hat tipi.
 
-Endpoint: https://ipqualityscore.com/api/json/phone/{KEY}/{NUMBER}
-Ücretsiz katman: 5.000 sorgu/ay.
 API key: https://www.ipqualityscore.com/create-account
-Env: IPQS_API_KEY (yoksa ABUSECH_AUTH_KEY fallback olarak denenir)
+Env: IPQS_API_KEY
+Not: IPQS API biçimi anahtarı URL yolunda gerektirir; HTTP logları bunu maskeler.
 """
 
 import os
@@ -28,10 +27,7 @@ class IPQualityScore(Provider):
 
     def __init__(self, **opts):
         super().__init__(**opts)
-        self.api_key = (
-            os.environ.get("IPQS_API_KEY")
-            or getattr(self, "auth_key", None)
-        )
+        self.api_key = os.environ.get("IPQS_API_KEY") or getattr(self, "auth_key", None)
 
     def query(self, phone_number, country=None):
         if not self.api_key:
@@ -48,7 +44,7 @@ class IPQualityScore(Provider):
         if r.status_code == 401:
             raise ProviderUnavailable("ipqualityscore: geçersiz API key")
         if r.status_code == 429:
-            raise ProviderUnavailable("ipqualityscore: rate-limited (5000/ay)")
+            raise ProviderUnavailable("ipqualityscore: rate-limited")
         if r.status_code != 200:
             raise ProviderUnavailable(f"ipqualityscore: HTTP {r.status_code}")
         try:
@@ -56,5 +52,6 @@ class IPQualityScore(Provider):
         except ValueError as e:
             raise ProviderUnavailable("ipqualityscore: json error") from e
         if not j.get("success", False):
-            raise ProviderUnavailable(f"ipqualityscore: {j.get('message', 'unknown')}")
+            # Provider response text may echo sensitive request details.
+            raise ProviderUnavailable("ipqualityscore: provider returned an unsuccessful response")
         return j
