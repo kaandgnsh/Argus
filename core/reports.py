@@ -75,7 +75,7 @@ def collect_scan_data():
         cases.append({"name": name, "note": note, "created_at": created})
 
     return {
-        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "generated_at": datetime.now().astimezone().isoformat(timespec='seconds'),
         "entities": entities,
         "relations": relations,
         "cases": cases,
@@ -170,7 +170,7 @@ def export_html(payload, name=None, title="ARGUS Report"):
 </head>
 <body>
 <h1>{_escape(title)}</h1>
-<p class="meta">Generated: {_escape(datetime.now().astimezone().isoformat(timespec="seconds"))}</p>
+<p class="meta">Generated: {_escape(datetime.now().astimezone().isoformat(timespec='seconds'))}</p>
 {body}
 <div class="footer">
   ARGUS — Public OSINT &amp; Recon Framework — authorized use only.
