@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 # KaanDGN ARGUS
 
-"""Güvenlik yardımcıları — SSRF, path traversal, archive bomb."""
+"""Security helpers for SSRF, path traversal and archive-bomb checks."""
 
 import ipaddress
 import os
+import re
 import socket
 from urllib.parse import urlparse
 
@@ -19,7 +20,7 @@ _BLOCKED_HOSTNAMES = {
 
 MAX_ARCHIVE_MEMBERS = 5000
 MAX_ARCHIVE_TOTAL = 500 * 1024 * 1024  # 500 MB
-MAX_ARCHIVE_RATIO = 200  # sıkıştırma oranı üst sınırı
+MAX_ARCHIVE_RATIO = 200  # compression ratio limit
 
 
 def is_private_ip(ip_str):
@@ -39,7 +40,7 @@ def _resolve(host):
 
 
 def is_safe_url(url):
-    """SSRF kontrolü. Döner: (bool, str_reason)."""
+    """SSRF check. Returns (allowed, reason)."""
     try:
         p = urlparse(url)
         # Reject credentials in URLs to avoid ambiguous parsing and accidental leaks.
@@ -75,7 +76,7 @@ def is_safe_url(url):
 # ===== PATH =====
 
 def is_safe_path(path, base_dir=None):
-    """Path traversal koruması. base_dir verilmezse abs path serbest."""
+    """Path traversal check. Absolute paths are allowed when base_dir is omitted."""
     try:
         real = os.path.realpath(path)
     except (OSError, TypeError, ValueError):
@@ -89,16 +90,40 @@ def is_safe_path(path, base_dir=None):
 # ===== ARCHIVE BOMB =====
 
 def archive_is_suspicious(members, compressed_size):
-    """members: [(name, size), ...]"""
+    """Check archive member count, sizes, compression ratio and cross-platform paths."""
+    if (
+        isinstance(compressed_size, bool)
+        or not isinstance(compressed_size, int)
+        or compressed_size < 0
+    ):
+        return True, "invalid compressed size"
     if len(members) > MAX_ARCHIVE_MEMBERS:
         return True, f"member count > {MAX_ARCHIVE_MEMBERS}"
-    total = sum(s for _, s in members)
+
+    total = 0
+    for entry in members:
+        if not isinstance(entry, (tuple, list)) or len(entry) != 2:
+            return True, "invalid member metadata"
+        name, size = entry
+        if not isinstance(name, str) or not name or "\x00" in name:
+            return True, "invalid archive member path"
+        if isinstance(size, bool) or not isinstance(size, int) or size < 0:
+            return True, "invalid archive member size"
+
+        normalized = name.replace("\\", "/")
+        # Check Windows drive paths as well as POSIX/UNC paths, regardless of host OS.
+        if (
+            normalized.startswith("/")
+            or re.match(r"^[a-zA-Z]:", normalized)
+            or any(part == ".." for part in normalized.split("/"))
+        ):
+            return True, f"unsafe path in archive: {name}"
+        total += size
+
     if total > MAX_ARCHIVE_TOTAL:
         return True, f"uncompressed total > {MAX_ARCHIVE_TOTAL} bytes"
+    if total > 0 and compressed_size == 0:
+        return True, "non-empty archive has zero compressed size"
     if compressed_size > 0 and total / compressed_size > MAX_ARCHIVE_RATIO:
         return True, f"compression ratio > {MAX_ARCHIVE_RATIO}"
-    for name, _ in members:
-        normalized = name.replace("\\", "/")
-        if normalized.startswith("/") or any(part == ".." for part in normalized.split("/")):
-            return True, f"unsafe path in archive: {name}"
     return False, "ok"
