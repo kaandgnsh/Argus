@@ -4,11 +4,8 @@
 
 """HLR Lookup — canlı ağ durumu, gerçek operatör, numara taşınmışlık (MNP).
 
-Endpoint: https://api.hlrlookup.com/api/v1/hlr-lookup
-Ücretsiz katman: 200 kredi (kayıt sonrası doğrulama ile).
 API key: https://www.hlrlookup.com/
 Env: HLRLOOKUP_API_KEY, HLRLOOKUP_API_SECRET
-     (HLRLOOKUP_API_KEY yoksa ABUSECH_AUTH_KEY fallback)
 """
 
 import os
@@ -29,10 +26,7 @@ class HLRLookup(Provider):
 
     def __init__(self, **opts):
         super().__init__(**opts)
-        self.api_key = (
-            os.environ.get("HLRLOOKUP_API_KEY")
-            or getattr(self, "auth_key", None)
-        )
+        self.api_key = os.environ.get("HLRLOOKUP_API_KEY") or getattr(self, "auth_key", None)
         self.api_secret = os.environ.get("HLRLOOKUP_API_SECRET") or ""
 
     def query(self, phone_number, msisdn=None):
@@ -41,6 +35,8 @@ class HLRLookup(Provider):
                 "hlrlookup: API key yok. HLRLOOKUP_API_KEY env değişkenine ekle."
             )
 
+        # This API's documented contract uses query parameters. core.http redacts
+        # key/secret query values from logs; do not print response bodies on errors.
         params = {"msisdn": phone_number, "key": self.api_key}
         if self.api_secret:
             params["secret"] = self.api_secret
@@ -57,5 +53,5 @@ class HLRLookup(Provider):
         except ValueError as e:
             raise ProviderUnavailable("hlrlookup: json error") from e
         if j.get("error"):
-            raise ProviderUnavailable(f"hlrlookup: {j['error']}")
+            raise ProviderUnavailable("hlrlookup: provider returned an error")
         return j
