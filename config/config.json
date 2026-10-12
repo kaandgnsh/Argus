@@ -1,0 +1,34 @@
+{
+    "app": {
+        "name": "ARGUS",
+        "version": "0.1.0",
+        "timeout": 8,
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    },
+    "search": {
+        "max_results": 10,
+        "providers": ["duckduckgo"]
+    },
+    "http": {
+        "retries": 2,
+        "backoff": 1.5,
+        "verify_tls": true
+    },
+    "proxy": {
+        "enabled": false,
+        "http": "",
+        "https": "",
+        "socks5": "",
+        "tor": false,
+        "tor_socks5": "socks5h://127.0.0.1:9050"
+    },
+    "cache": {
+        "enabled": true,
+        "ttl": 3600,
+        "path": "cache/argus.sqlite"
+    },
+    "logging": {
+        "level": "INFO",
+        "dir": "logs"
+    }
+}
