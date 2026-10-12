@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # KaanDGN ARGUS
 
-"""Güvenli HTTP istemcisi — SSRF, yönlendirme kontrolü, retry, timeout."""
+"""Secure HTTP client with SSRF, redirect, retry, timeout and size-limit checks."""
 
 import re
 import time
@@ -22,6 +22,12 @@ _SECRET_QUERY_KEYS = re.compile(r"(key|token|secret|password|auth|api.?key|acces
 
 
 class UnsafeURL(Exception):
+    pass
+
+
+class ResponseTooLarge(Exception):
+    """Raised when a response body exceeds the caller's configured byte limit."""
+
     pass
 
 
@@ -86,7 +92,16 @@ def _check_url(url, allow_private):
 
 
 def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
-    """SSRF korumalı GET; her redirect hedefi ayrıca doğrulanır."""
+    """SSRF-protected GET; validates redirects and fails on oversized bodies.
+
+    If max_bytes is set, a response larger than that limit raises
+    ResponseTooLarge rather than returning a misleading truncated response.
+    """
+    if max_bytes is not None and (
+        isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes <= 0
+    ):
+        raise ValueError("max_bytes must be a positive integer")
+
     _check_url(url, allow_private)
     timeout = timeout or CONFIG["app"]["timeout"]
     retries = CONFIG["http"]["retries"]
@@ -104,7 +119,7 @@ def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
                 _check_url(current_url, allow_private)
                 response = session.get(
                     current_url, timeout=timeout, verify=verify,
-                    proxies=_proxies(), stream=bool(max_bytes),
+                    proxies=_proxies(), stream=max_bytes is not None,
                     allow_redirects=False, **request_kwargs,
                 )
                 # Query parameters apply only to the initial URL, not each redirect.
@@ -130,14 +145,18 @@ def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
             else:
                 raise UnsafeURL("too many redirects")
 
-            if max_bytes:
+            if max_bytes is not None:
                 chunks = []
                 total = 0
                 for chunk in r.iter_content(8192):
+                    if not chunk:
+                        continue
                     total += len(chunk)
                     if total > max_bytes:
                         r.close()
-                        break
+                        raise ResponseTooLarge(
+                            f"response body exceeded max_bytes ({max_bytes})"
+                        )
                     chunks.append(chunk)
                 r._content = b"".join(chunks)
                 r._content_consumed = True
@@ -159,7 +178,7 @@ def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
 
 
 def safe_post(url, timeout=None, allow_private=False, **kwargs):
-    """SSRF korumalı POST; otomatik redirect kapalıdır."""
+    """SSRF-protected POST; automatic redirects are disabled."""
     _check_url(url, allow_private)
     timeout = timeout or CONFIG["app"]["timeout"]
     verify = CONFIG["http"]["verify_tls"]
