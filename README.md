@@ -430,7 +430,7 @@ değil, çalışan iş.
 
 ~/license
 
-MIT — bkz. LICENSE.
+MIT — bkz. [LICENSE](LICENSE).
 
 ---
 
