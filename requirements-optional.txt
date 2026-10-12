@@ -4,3 +4,4 @@ python-magic>=0.4.27
 pypdf>=3.0.0
 exifread>=3.0.0
 telegram-phone-number-checker>=1.0.0
+pytest>=7.0.0  # test suite
