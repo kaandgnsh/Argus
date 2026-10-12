@@ -97,38 +97,38 @@ def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
     last_exc = None
     for attempt in range(retries + 1):
         current_url = url
+        session = _session()
         try:
-            session = _session()
-            try:
-                for redirect_count in range(_MAX_REDIRECTS + 1):
-                    _check_url(current_url, allow_private)
-                    response = session.get(
-                        current_url, timeout=timeout, verify=verify,
-                        proxies=_proxies(), stream=bool(max_bytes),
-                        allow_redirects=False, **kwargs,
-                    )
-                    if response.status_code not in _REDIRECT_CODES or not follow_redirects:
-                        r = response
-                        break
-                    location = response.headers.get("Location")
-                    if not location:
-                        r = response
-                        break
-                    if redirect_count >= _MAX_REDIRECTS:
-                        response.close()
-                        raise UnsafeURL("too many redirects")
-                    next_url = urljoin(current_url, location)
-                    _check_url(next_url, allow_private)
-                    # Do not allow HTTPS requests to silently downgrade to HTTP.
-                    if urlsplit(current_url).scheme.lower() == "https" and urlsplit(next_url).scheme.lower() != "https":
-                        response.close()
-                        raise UnsafeURL("HTTPS downgrade redirect blocked")
+            request_kwargs = dict(kwargs)
+            for redirect_count in range(_MAX_REDIRECTS + 1):
+                _check_url(current_url, allow_private)
+                response = session.get(
+                    current_url, timeout=timeout, verify=verify,
+                    proxies=_proxies(), stream=bool(max_bytes),
+                    allow_redirects=False, **request_kwargs,
+                )
+                # Query parameters apply only to the initial URL, not each redirect.
+                request_kwargs.pop("params", None)
+                if response.status_code not in _REDIRECT_CODES or not follow_redirects:
+                    r = response
+                    break
+                location = response.headers.get("Location")
+                if not location:
+                    r = response
+                    break
+                if redirect_count >= _MAX_REDIRECTS:
                     response.close()
-                    current_url = next_url
-                else:
                     raise UnsafeURL("too many redirects")
-            finally:
-                session.close()
+                next_url = urljoin(current_url, location)
+                _check_url(next_url, allow_private)
+                # Do not allow HTTPS requests to silently downgrade to HTTP.
+                if urlsplit(current_url).scheme.lower() == "https" and urlsplit(next_url).scheme.lower() != "https":
+                    response.close()
+                    raise UnsafeURL("HTTPS downgrade redirect blocked")
+                response.close()
+                current_url = next_url
+            else:
+                raise UnsafeURL("too many redirects")
 
             if max_bytes:
                 chunks = []
@@ -152,6 +152,8 @@ def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
                 time.sleep(backoff ** attempt)
                 continue
             raise
+        finally:
+            session.close()
     if last_exc:
         raise last_exc
 
@@ -163,10 +165,14 @@ def safe_post(url, timeout=None, allow_private=False, **kwargs):
     verify = CONFIG["http"]["verify_tls"]
     # POST redirects must be handled explicitly by callers after validating Location.
     kwargs.pop("allow_redirects", None)
-    return _session().post(
-        url, timeout=timeout, verify=verify, proxies=_proxies(),
-        allow_redirects=False, **kwargs,
-    )
+    session = _session()
+    try:
+        return session.post(
+            url, timeout=timeout, verify=verify, proxies=_proxies(),
+            allow_redirects=False, **kwargs,
+        )
+    finally:
+        session.close()
 
 
 def fetch_text(url, **kwargs):
