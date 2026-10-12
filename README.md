@@ -1,58 +1,73 @@
 # ARGUS
 
-Kamuya açık kaynaklardan bilgi toplamak, bulguları ilişkilendirmek ve yerel raporlar üretmek için modüler Python OSINT / recon aracı.
+<p align="center">
+  <strong>A modular OSINT and reconnaissance framework for public-source research, entity correlation, and local reporting.</strong>
+</p>
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Termux-lightgrey)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://github.com/kaandgnsh/Argus/actions/workflows/tests.yml/badge.svg)
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Termux-444444?style=for-the-badge" alt="Supported platforms">
+  <img src="https://img.shields.io/badge/License-MIT-315C45?style=for-the-badge" alt="MIT license">
+  <a href="https://github.com/kaandgnsh/Argus/actions/workflows/tests.yml">
+    <img src="https://github.com/kaandgnsh/Argus/actions/workflows/tests.yml/badge.svg?branch=main" alt="Tests">
+  </a>
+</p>
+
+---
+
+## Overview
+
+**ARGUS** collects information from public sources, records entities and relationships in a local SQLite database, and exports findings to structured reports. Its provider-based architecture supports domain, IP, URL, username, email, phone-number, GitHub, threat-indicator, and local-file workflows.
+
+ARGUS is an educational software and security-research project. It is not a guarantee that a result is correct, complete, current, or legally appropriate to collect.
 
 > [!WARNING]
-> **Eğitim ve güvenlik araştırması amaçlıdır.** ARGUS'u kendi laboratuvarında veya açıkça yetkilendirildiğin sistemlerde kullan. Telefon, e-posta, kullanıcı adı ve diğer kişisel veriler üçüncü taraflara iletilebilir. Verinin internette herkese açık olması, onu sınırsız toplama, ilişkilendirme veya yayımlama izni vermez. Yetkisiz erişim, gözetleme, taciz ya da güvenlik kontrollerini aşma amacıyla kullanma.
+> **Use responsibly.** Run ARGUS only on your own data, in a controlled lab, or against targets for which you have explicit authorization. Phone numbers, email addresses, usernames, IP addresses, and related identifiers may be sent to third-party providers. Public availability does not grant unlimited permission to collect, correlate, or republish information. Do not use ARGUS for stalking, harassment, unauthorized access, or evasion of security controls.
 
-## ⚖️ Eğitim amacı ve sorumluluk
+## Features
 
-ARGUS; yazılım geliştirme, OSINT yöntemlerini öğrenme ve izinli güvenlik araştırmalarını desteklemek için hazırlanmış bir eğitim projesidir. Bir profesyonel danışmanlık hizmeti veya hukuki tavsiye değildir.
+- **Multiple target types:** usernames, email addresses, phone numbers, domains/DNS, IP addresses, URLs, hashes, GitHub profiles, threat indicators, and local files.
+- **Provider-based architecture:** modular DNS, RDAP, Certificate Transparency, and threat-intelligence lookups.
+- **Local database:** entities, relationships, evidence, and cases are stored in SQLite.
+- **Report exports:** JSON, HTML, CSV, Markdown, and GraphViz DOT.
+- **File analysis:** hash calculation, IOC extraction, archive inspection, and optional EXIF/PDF/media metadata support.
+- **Security controls:** URL and redirect checks for HTTP requests, archive member/size/path limits, and bounded subprocess operations for supported external tools.
+- **Optional external tools:** list supported tools and request installation explicitly.
+- **No automatic dependency installation at startup:** install Python dependencies deliberately and add optional components only when you need them.
 
-- Yalnızca kendi verilerin, kontrollü laboratuvar ortamların veya açıkça izin aldığın hedefler üzerinde kullan.
-- Sorgular üçüncü taraf servislerine istek gönderebilir; veri saklama politikalarını ve hedeflerin kullanım koşullarını incele.
-- Bulguları doğrula; otomatik eşleştirmeler yanlış pozitif üretebilir.
-- Bu uyarı tek başına yasal sorumluluktan muafiyet sağlamaz. Kullanımın yürürlükteki mevzuata, gizlilik kurallarına ve servis koşullarına uygunluğunu sağlamak kullanıcıya aittir.
+## Requirements
 
-## ✨ Özellikler
-
-- **Çoklu hedef türü:** kullanıcı adı, e-posta, telefon, domain/DNS, IP, URL, hash, GitHub profili, IOC ve yerel dosya.
-- **Provider tabanlı mimari:** DNS, RDAP, Certificate Transparency ve tehdit istihbaratı kaynaklarını modüler biçimde kullanır.
-- **Yerel kayıt:** bulguları SQLite üzerinde entity ve ilişki olarak saklar; case yönetimi sunar.
-- **Raporlama:** JSON, HTML, CSV, Markdown ve GraphViz DOT dışa aktarımı.
-- **Dosya analizi:** hash üretimi, IOC çıkarımı, arşiv incelemesi ve isteğe bağlı EXIF/PDF/medya metadata desteği.
-- **Güvenlik kontrolleri:** HTTP istemcisinde URL/redirect kontrolleri; arşivlerde üye sayısı, açılmış boyut ve yol denetimleri.
-- **Harici araç yönetimi:** desteklenen sistemlerde isteğe bağlı araç kurulumunu kullanıcı onayıyla başlatır.
-- **Otomatik paket kurulumu yok:** temel bağımlılıklar açıkça pip ile kurulur; isteğe bağlı özellikler ek paket gerektirebilir.
-
-## 📦 Kurulum
-
-### Gereksinimler
-
-- Python 3.10 veya üstü
+- Python 3.10 or newer
 - Git
-- Zorunlu Python paketleri: requests, beautifulsoup4, phonenumbers, dnspython
+- Required Python packages listed in `requirements.txt`
 
-### Linux / macOS / Termux
+## Installation
+
+### Linux, macOS, and Termux
+
+Clone the repository:
 
 ```bash
 git clone https://github.com/kaandgnsh/Argus.git
 cd Argus
+```
 
+Recommended: create an isolated virtual environment:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
-
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python argus.py --version
 ```
 
-Termux'ta önce pkg install python git komutunu çalıştır.
+If your Linux distribution does not have the `venv` module installed, install the matching OS package (often named `python3-venv`) and repeat the commands. On Termux, first run:
+
+```bash
+pkg update
+pkg install python git
+```
 
 ### Windows (PowerShell)
 
@@ -62,165 +77,172 @@ cd Argus
 
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
-
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python argus.py --version
 ```
 
-### İsteğe bağlı bağımlılıklar
+### Installation helper
 
-Dosya türüne göre yalnızca ihtiyacın olan ekleri kur. Örneğin:
+On POSIX-compatible systems, the helper creates a local `.venv`, installs required packages there, and asks before installing the optional dependency set:
 
 ```bash
-python -m pip install Pillow pypdf exifread
+sh install.sh
 ```
 
-python-magic işletim sistemine bağlı ek sistem kütüphaneleri gerektirebilir. Telegram telefon numarası kontrolü gibi ayrı entegrasyonları yalnızca bilerek kullanacaksan kur.
+Review the prompts before accepting optional dependencies. The helper does not install OS-level external tools.
 
-## 🚀 Kullanım
+### Optional dependencies
 
-### Hızlı örnekler
+Only install the optional packages needed for your workflow:
 
 ```bash
-# İnteraktif menü
-python3 argus.py
+python -m pip install -r requirements-optional.txt
+```
 
-# Domain / DNS ve IP bilgileri
+Some packages also need OS libraries. For example, `python-magic` may require the system's `libmagic` library. Optional phone-number integrations can send identifiers to third-party providers, so review provider behavior and privacy policies before enabling them.
+
+For development and tests:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
+## Quick Start
+
+Start the interactive menu:
+
+```bash
+python3 argus.py
+```
+
+Examples of supported workflows:
+
+```bash
+# Domain, DNS, and IP information
 python3 argus.py -domain example.com
 python3 argus.py -dns example.com
 python3 argus.py -ip 8.8.8.8 --no-map
 
-# Kullanıcı adı, e-posta ve GitHub
+# Username, email, and public GitHub profile lookups
 python3 argus.py -username kaandgnsh
 python3 argus.py -email user@example.com
 python3 argus.py -github torvalds
 
-# URL, hash ve tehdit göstergesi
+# URL, hash, and threat-indicator lookups
 python3 argus.py -url https://example.com
 python3 argus.py -hash 5d41402abc4b2a76b9719d911017c592
 python3 argus.py -threat 8.8.8.8
 
-# Yetkili olduğun hedefler için arama
+# Local file metadata and search
+python3 argus.py -file ./document.pdf
+python3 argus.py -exif ./photo.jpg
 python3 argus.py -search "site:example.com security.txt"
-python3 argus.py -dork "site:example.com"
 
-# Yerel dosya ve EXIF analizi
-python3 argus.py -file document.pdf
-python3 argus.py -exif photo.jpg
-
-# Veritabanında kayıtlı bulguları dışa aktar
+# Export records already stored in the local database
 python3 argus.py --export-all
 ```
 
-**--export-all** yeni tarama başlatmaz; SQLite veritabanında o ana kadar birikmiş kayıtları raporlar. Telefon numarası analizi ise yapılandırılmış provider'ları ve arama sağlayıcılarını kullanabilir; bir sorgunun yerel kaldığını varsayma.
+**Important:** `--export-all` does not start a new scan; it exports records already collected in the SQLite database. Search, phone-number, IP, and provider-based commands may send requests to third-party services.
 
-## ⚙️ CLI seçenekleri
+## CLI Reference
 
-| Seçenek | Açıklama |
-|---|---|
-| **-phone NUMBER** | Telefon numarası analizi; üçüncü taraf sorguları çalıştırabilir |
-| **-username / -u USER** | Kullanıcı adı için çoklu platform kontrolü |
-| **-email EMAIL** | E-posta istihbaratı |
-| **-domain DOMAIN** | Domain istihbaratı ve alt domain bilgileri |
-| **-dns DOMAIN** | DNS odaklı domain sorgusu |
-| **-ip IP** | IP istihbaratı; --no-map haritayı gizler |
-| **-url URL** | URL / HTTP başlıkları ve yönlendirme analizi |
-| **-hash VALUE** | Hash türü tespiti ve hash üretimi |
-| **-github USER** | Kamuya açık GitHub profili ve repo bilgileri |
-| **-threat IOC** | IP/domain/URL/hash gibi tehdit göstergesi sorgusu |
-| **-file PATH** | Yerel dosya analizi ve IOC çıkarımı |
-| **-exif IMAGE** | Görsel metadata analizi; --save-thumb thumbnail kaydeder |
-| **-dork QUERY** | Arama motoruyla dork sorgusu |
-| **-search QUERY** | Genel web araması |
-| **-correlate QUERY** | Yerel veritabanındaki ilişkileri incele |
-| **--export-json** | JSON raporu üret |
-| **--export-html** | HTML raporu üret |
-| **--export-csv** | Entity ve ilişki CSV dosyalarını üret |
-| **--export-md** | Markdown raporu üret |
-| **--export-dot** | GraphViz ilişki grafiği üret |
-| **--export-all** | Desteklenen tüm raporları üret |
-| **--list-tools** | Harici araçların durumunu listele |
-| **--install-tools TOOL** | Belirtilen aracı kullanıcı onayıyla kurmayı dene |
-| **--no-color** | Renkli terminal çıktısını kapat |
-| **--debug** | Debug seviyesinde günlükleme |
-| **--clear-cache** | Yerel cache'i temizle |
-| **--json** | JSON stdout çıktısı; şu anda -search ve -exif akışlarında desteklenir |
-| **--subdomain-log PATH** | Alt domain listesini dosyaya yaz |
+| Option | Description |
+|:--|:--|
+| `-phone NUMBER` | Phone-number analysis; may use configured third-party providers. |
+| `-username USER`, `-u USER` | Username research across supported platforms. |
+| `-email EMAIL` | Email-related intelligence. |
+| `-domain DOMAIN` | Domain intelligence and subdomain information. |
+| `-dns DOMAIN` | DNS-focused domain lookup. |
+| `-ip IP` | IP intelligence; use `--no-map` to hide the ASCII map. |
+| `-url URL` | URL, HTTP-header, and redirect analysis. |
+| `-hash HASH` | Hash identification and related lookup. |
+| `-github USER` | Public GitHub profile and repository information. |
+| `-threat IOC` | Look up a supported IP, domain, URL, hash, or CVE indicator. |
+| `-file PATH` | Analyze a local file and extract supported indicators. |
+| `-exif IMAGE` | Extract image metadata; `--save-thumb` saves an embedded thumbnail under `reports/`. |
+| `-dork QUERY` | Submit a search-engine query. |
+| `-search QUERY` | Perform a general web search. |
+| `-correlate QUERY` | Explore relationships recorded in the local database. |
+| `--export-json` | Export a JSON report. |
+| `--export-html` | Export an HTML report. |
+| `--export-csv` | Export entity and relationship CSV files. |
+| `--export-md` | Export a Markdown report. |
+| `--export-dot` | Export a GraphViz DOT relationship graph. |
+| `--export-all` | Generate all supported report formats. |
+| `--list-tools` | Show supported external tools and their status. |
+| `--install-tools TOOL` | Request installation of a selected external tool. Use `all` to list tools. |
+| `--no-color` | Disable colored terminal output. |
+| `--debug` | Enable debug logging. |
+| `--clear-cache` | Clear the local cache. |
+| `--json` | Enable JSON stdout output for supported `-search` and `-exif` workflows. |
+| `--subdomain-log PATH` | Write the complete subdomain list to a file. |
+| `--no-map` | Hide the ASCII map in IP lookups. |
+| `--save-thumb` | Save an embedded image thumbnail under `reports/`. |
+| `--version` | Print the installed ARGUS version. |
 
-Araç adlarını görmek için python3 argus.py --list-tools kullan. Kurulumdan önce gösterilen komutu incele; ARGUS sistem paket yöneticisini çalıştırmadan önce onay ister.
-
-## 🔐 Gizlilik ve güvenlik
-
-- **Telefon sorguları:** telefon numarası; yapılandırılmış ve etkin provider'lara, ayrıca sosyal/şikâyet sitesi araması için DuckDuckGo veya Bing'e gönderilebilir. Üçüncü tarafların kendi saklama politikaları geçerlidir.
-- **Provider ayarları:** config/providers.json dosyasında ihtiyacın olmayan provider'ları enabled: false yap. API anahtarlarını kaynak koduna veya Git'e yazma; sağlayıcının dokümantasyonunda belirtilen ortam değişkenlerini kullan.
-- **Yerel kayıtlar:** entity ve ilişki verileri data/argus.sqlite içinde; raporlar reports/, günlükler logs/ altında tutulur. Bu klasörler hedeflere ait hassas bulgular içerebilir.
-- **HTTP kontrolleri:** URL ve yönlendirme hedefleri kontrol edilir, ancak hiçbir uygulama katmanı kontrolünü mutlak güvenlik garantisi olarak değerlendirme. ARGUS'u güncel tut ve bulguları kaynağından doğrula.
-- **Dosya analizi:** yalnızca incelemeye yetkili olduğun dosyaları aç. Bilinmeyen dosyalar çalıştırılmaz; harici metadata araçları ayrı süreçlerde zaman aşımıyla çalışır.
-
-## 🧪 Testler
+To inspect the available external tools:
 
 ```bash
-python -m pip install pytest
+python3 argus.py --list-tools
+```
+
+Read the command shown by ARGUS before approving any external-tool installation.
+
+## Privacy and Security
+
+- **Third-party lookups:** the enabled provider configuration determines which external services receive a query. Check their retention policies and terms before submitting personal identifiers.
+- **Provider configuration:** review `config/providers.json` and disable providers you do not need. Do not commit API keys or private provider configuration to Git; use the environment variables expected by each provider.
+- **Local artifacts:** entities and relationships may be stored in `data/argus.sqlite`; reports, logs, and caches may include sensitive findings. Keep local data directories private and inspect reports before sharing them.
+- **HTTP safeguards:** ARGUS checks URLs and redirect targets, but network-level behavior can be complex. Treat these checks as defense in depth, not as a proof that every endpoint or DNS configuration is safe.
+- **File analysis:** analyze only files you are authorized to inspect. Avoid sharing reports containing personal information, tokens, private paths, or internal network details.
+- **Result quality:** automated matches can be false positives or stale. Verify material findings against the original source before relying on them.
+
+## Tests
+
+Install development dependencies and run the test suite:
+
+```bash
+python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-Test kapsamı güvenlik yardımcılarını, telefon numarası normalizasyonunu, rapor dışa aktarmayı ve CLI yönlendirmelerini içerir. GitHub Actions, testleri Python 3.10–3.12 üzerinde çalıştırır.
+GitHub Actions runs tests on Python 3.10, 3.11, and 3.12. The suite covers HTTP and URL safeguards, security helpers, phone-number normalization, CLI behavior, and report exports.
 
-## 📁 Proje yapısı
+## Project Structure
 
 ```text
 Argus/
 ├── argus.py
+├── install.sh
 ├── requirements.txt
 ├── requirements-optional.txt
-├── install.sh
+├── requirements-dev.txt
 ├── config/
-│   ├── config.json
-│   └── providers.json
 ├── core/
-│   ├── cache.py
-│   ├── cli.py
-│   ├── config.py
-│   ├── database.py
-│   ├── deps.py
-│   ├── http.py
-│   ├── logger.py
-│   ├── reports.py
-│   ├── security.py
-│   ├── tools.py
-│   └── ui.py
+├── data/
+├── cache/
+├── logs/
 ├── modules/
-│   ├── phone.py
-│   ├── nickname.py
-│   ├── email.py
-│   ├── domain.py
-│   ├── ip.py
-│   ├── url.py
-│   ├── hash.py
-│   ├── github.py
-│   ├── threat.py
-│   ├── file_intel.py
-│   ├── exif.py
-│   ├── dork.py
-│   ├── correlation.py
-│   └── cases.py
 ├── providers/
+├── reports/
 └── tests/
 ```
 
-## 🤝 Katkı
+## Contributing
 
-1. Fork oluştur.
-2. Ayrı bir dal aç: git checkout -b fix/kisa-aciklama
-3. Değişikliği ve testleri ekle.
-4. python -m pytest -q çalıştır.
-5. Pull request aç ve davranış değişikliklerini açıkla.
+1. Fork the repository.
+2. Create a focused branch, for example `git checkout -b fix/short-description`.
+3. Document behavioral changes and add tests where appropriate.
+4. Run `python -m pytest -q`.
+5. Open a pull request with a concise explanation of the change.
 
-## 📜 Lisans
+Please review the security policy in [SECURITY.md](SECURITY.md) before reporting a vulnerability.
 
-MIT License. Ayrıntılar için [LICENSE](LICENSE) dosyasına bak.
+## License
 
-## 👤 Yazar
+ARGUS is released under the [MIT License](LICENSE).
+
+## Author
 
 **Kaan DOĞAN** · [GitHub](https://github.com/kaandgnsh) · [LinkedIn](https://www.linkedin.com/in/kaan-do%C4%9Fan-911663280/) · [Instagram](https://instagram.com/kaandgn.sh)
