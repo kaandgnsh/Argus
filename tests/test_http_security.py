@@ -21,6 +21,7 @@ def test_redact_url_hides_ipqs_path_key():
         "https://ipqualityscore.com/api/json/phone/supersecret/+905551112233"
     )
     assert "supersecret" not in value
+    assert "+905551112233" not in value
     assert "[REDACTED]" in value
 
 
