@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # KaanDGN ARGUS
 
+import pytest
+
 from core.security import is_private_ip, is_safe_url, archive_is_suspicious
 
 
@@ -51,4 +53,34 @@ def test_archive_ok():
 
 def test_archive_path_traversal_detected():
     assert archive_is_suspicious([("../etc/passwd", 10)], 50)[0]
-    assert archive_is_suspicious([("..\\etc\\passwd", 10)], 50)[0]
+    assert archive_is_suspicious([("..\\\\etc\\\\passwd", 10)], 50)[0]
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "C:/Windows/system.ini",
+        r"C:\Windows\system.ini",
+        "C:drive-relative.txt",
+        r"\\server\share\file.txt",
+    ],
+)
+def test_archive_rejects_windows_absolute_or_drive_paths(name):
+    bad, _ = archive_is_suspicious([(name, 10)], 100)
+    assert bad
+
+
+@pytest.mark.parametrize(
+    "members,compressed_size",
+    [
+        ([("file.txt", -1)], 100),
+        ([("file.txt", True)], 100),
+        ([("", 1)], 100),
+        ([("bad\x00name", 1)], 100),
+        ([("file.txt", 1)], 0),
+        ([("file.txt", 1)], -1),
+    ],
+)
+def test_archive_rejects_invalid_metadata(members, compressed_size):
+    bad, _ = archive_is_suspicious(members, compressed_size)
+    assert bad
