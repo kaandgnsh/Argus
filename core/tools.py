@@ -274,7 +274,7 @@ def list_tools():
             pad = " " * 7
         print(f"  {Cyan}{name:<14}{Bitir}{status}{pad} {info['desc']}")
 
-    print(f"\n{Mor}[i]{Bitir} Kurmak için: "
+    print(f"\n{Mor}[i]{Bitir} Bir aracı kurmak için: "
           f"{Cyan}python3 argus.py --install-tools exiftool{Bitir}")
-    print(f"{Mor}[i]{Bitir} Hepsini kurmak için: "
-          f"{Cyan}python3 argus.py --install-tools all{Bitir}")
+    print(f"{Mor}[i]{Bitir} Tüm araçları listelemek için: "
+          f"{Cyan}python3 argus.py --list-tools{Bitir}")
