@@ -39,6 +39,40 @@ def _resolve(host):
     return {info[4][0].split("%", 1)[0] for info in infos}
 
 
+def resolve_public_ip(host):
+    """Resolve a host to one globally routable IP or raise ValueError.
+
+    Used immediately before opening a direct TCP connection. The caller then
+    connects to the numeric address, avoiding a second DNS lookup by the socket.
+    """
+    host = (host or "").strip().lower().rstrip(".")
+    if not host:
+        raise ValueError("no host")
+
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+
+    if literal is not None:
+        if is_private_ip(str(literal)):
+            raise ValueError("non-public IP")
+        return str(literal)
+
+    try:
+        addresses = _resolve(host)
+    except (socket.gaierror, OSError):
+        raise ValueError("DNS resolution failed") from None
+
+    if not addresses:
+        raise ValueError("DNS returned no addresses")
+    if any(is_private_ip(address) for address in addresses):
+        raise ValueError("host resolves to a non-public IP")
+
+    # _resolve returns a set; make address selection deterministic for tests.
+    return sorted(addresses)[0]
+
+
 def is_safe_url(url):
     """SSRF check. Returns (allowed, reason)."""
     try:
