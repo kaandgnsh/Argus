@@ -58,7 +58,6 @@ class _PinDNSMixin:
                 self.host = original_host
                 self._dns_host = original_dns_host
         except Exception:
-            # Do not leave a pooled connection object with a mutated host after errors.
             self.host = original_host
             self._dns_host = original_dns_host
             raise
@@ -144,18 +143,24 @@ def _proxies():
     return proxies or None
 
 
+def _request_proxies():
+    """Use only explicitly configured proxies; avoid ambient proxy env variables."""
+    configured = _proxies() or {}
+    return {
+        "http": configured.get("http"),
+        "https": configured.get("https"),
+        "all": None,
+    }
+
+
 def _session(allow_private=False):
     s = requests.Session()
-    # Do not let ambient HTTP_PROXY/HTTPS_PROXY settings silently bypass direct DNS pinning.
-    # Explicit proxy support remains available through config and request-level proxies.
-    s.trust_env = False
     s.headers.update({
         "User-Agent": CONFIG["app"]["user_agent"],
         "Accept-Language": "en-US,en;q=0.9",
     })
     if not allow_private:
-        adapter = _PinnedHTTPAdapter()
-        s.mount("http://", adapter)
+        s.mount("http://", _PinnedHTTPAdapter())
         s.mount("https://", _PinnedHTTPAdapter())
     return s
 
@@ -201,7 +206,7 @@ def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
                 _check_url(current_url, allow_private)
                 response = session.get(
                     current_url, timeout=timeout, verify=verify,
-                    proxies=_proxies(), stream=max_bytes is not None,
+                    proxies=_request_proxies(), stream=max_bytes is not None,
                     allow_redirects=False, **request_kwargs,
                 )
                 # Query parameters apply only to the initial URL, not each redirect.
@@ -269,7 +274,7 @@ def safe_post(url, timeout=None, allow_private=False, **kwargs):
     session = _session(allow_private=allow_private)
     try:
         return session.post(
-            url, timeout=timeout, verify=verify, proxies=_proxies(),
+            url, timeout=timeout, verify=verify, proxies=_request_proxies(),
             allow_redirects=False, **kwargs,
         )
     finally:
