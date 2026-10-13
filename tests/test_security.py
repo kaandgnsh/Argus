@@ -85,7 +85,7 @@ def test_archive_ok():
 
 def test_archive_path_traversal_detected():
     assert archive_is_suspicious([("../etc/passwd", 10)], 50)[0]
-    assert archive_is_suspicious(["..\\\\etc\\\\passwd", 10], 50)[0]
+    assert archive_is_suspicious([("..\\\\etc\\\\passwd", 10)], 50)[0]
 
 
 @pytest.mark.parametrize(
