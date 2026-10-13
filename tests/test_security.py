@@ -4,7 +4,12 @@
 
 import pytest
 
-from core.security import is_private_ip, is_safe_url, archive_is_suspicious
+from core.security import (
+    is_private_ip,
+    is_safe_url,
+    resolve_public_ip,
+    archive_is_suspicious,
+)
 
 
 def test_private_ip():
@@ -37,6 +42,33 @@ def test_safe_url_scheme():
 def test_safe_url_rejects_credentials():
     ok, _ = is_safe_url("https://user:password@example.com/")
     assert not ok
+
+
+def test_resolve_public_ip_accepts_public_literal(monkeypatch):
+    def unexpected_resolve(_host):
+        pytest.fail("IP literals should not trigger DNS")
+
+    monkeypatch.setattr("core.security._resolve", unexpected_resolve)
+    assert resolve_public_ip("8.8.8.8") == "8.8.8.8"
+
+
+def test_resolve_public_ip_rejects_mixed_public_and_private_answers(monkeypatch):
+    monkeypatch.setattr(
+        "core.security._resolve",
+        lambda _host: {"8.8.8.8", "127.0.0.1"},
+    )
+    with pytest.raises(ValueError, match="non-public"):
+        resolve_public_ip("rebind.example")
+
+
+def test_dns_rebinding_is_rechecked_before_connection(monkeypatch):
+    answers = iter([{"8.8.8.8"}, {"127.0.0.1"}])
+    monkeypatch.setattr("core.security._resolve", lambda _host: next(answers))
+
+    # The first lookup passes URL validation; the lookup at connection time must fail.
+    assert is_safe_url("https://rebind.example/") == (True, "ok")
+    with pytest.raises(ValueError, match="non-public"):
+        resolve_public_ip("rebind.example")
 
 
 def test_archive_bomb():

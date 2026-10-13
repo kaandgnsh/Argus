@@ -9,9 +9,14 @@ import time
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.connection import HTTPConnection as _HTTPConnection
+from urllib3.connection import HTTPSConnection as _HTTPSConnection
+from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+from urllib3.poolmanager import PoolManager
 
 from core.config import CONFIG
-from core.security import is_safe_url
+from core.security import is_safe_url, resolve_public_ip
 from core.logger import get_logger
 
 
@@ -29,6 +34,71 @@ class ResponseTooLarge(Exception):
     """Raised when a response body exceeds the caller's configured byte limit."""
 
     pass
+
+
+class _PinDNSMixin:
+    """Pin direct TCP connections to a public IP without changing Host/TLS identity."""
+
+    def _new_conn(self):
+        original_host = self.host
+        original_dns_host = getattr(self, "_dns_host", original_host)
+        try:
+            try:
+                pinned_ip = resolve_public_ip(original_host)
+            except (OSError, ValueError) as exc:
+                raise UnsafeURL(f"blocked connection target ({exc})") from None
+
+            # urllib3 uses _dns_host for the TCP socket and host for TLS SNI/cert checks.
+            # Change both only during socket creation; restore the hostname before TLS.
+            self.host = pinned_ip
+            self._dns_host = pinned_ip
+            try:
+                return super()._new_conn()
+            finally:
+                self.host = original_host
+                self._dns_host = original_dns_host
+        except Exception:
+            self.host = original_host
+            self._dns_host = original_dns_host
+            raise
+
+
+class _PinnedHTTPConnection(_PinDNSMixin, _HTTPConnection):
+    pass
+
+
+class _PinnedHTTPSConnection(_PinDNSMixin, _HTTPSConnection):
+    pass
+
+
+class _PinnedHTTPConnectionPool(HTTPConnectionPool):
+    ConnectionCls = _PinnedHTTPConnection
+
+
+class _PinnedHTTPSConnectionPool(HTTPSConnectionPool):
+    ConnectionCls = _PinnedHTTPSConnection
+
+
+class _PinnedPoolManager(PoolManager):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pool_classes_by_scheme = dict(self.pool_classes_by_scheme)
+        self.pool_classes_by_scheme.update({
+            "http": _PinnedHTTPConnectionPool,
+            "https": _PinnedHTTPSConnectionPool,
+        })
+
+
+class _PinnedHTTPAdapter(HTTPAdapter):
+    """Requests adapter that pins DNS for direct HTTP(S) connections."""
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        self._pool_connections = connections
+        self._pool_maxsize = maxsize
+        self._pool_block = block
+        self.poolmanager = _PinnedPoolManager(
+            num_pools=connections, maxsize=maxsize, block=block, **pool_kwargs
+        )
 
 
 def _redact_url(url):
@@ -73,12 +143,25 @@ def _proxies():
     return proxies or None
 
 
-def _session():
+def _request_proxies():
+    """Use only explicitly configured proxies; avoid ambient proxy env variables."""
+    configured = _proxies() or {}
+    return {
+        "http": configured.get("http"),
+        "https": configured.get("https"),
+        "all": None,
+    }
+
+
+def _session(allow_private=False):
     s = requests.Session()
     s.headers.update({
         "User-Agent": CONFIG["app"]["user_agent"],
         "Accept-Language": "en-US,en;q=0.9",
     })
+    if not allow_private:
+        s.mount("http://", _PinnedHTTPAdapter())
+        s.mount("https://", _PinnedHTTPAdapter())
     return s
 
 
@@ -94,8 +177,12 @@ def _check_url(url, allow_private):
 def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
     """SSRF-protected GET; validates redirects and fails on oversized bodies.
 
-    If max_bytes is set, a response larger than that limit raises
-    ResponseTooLarge rather than returning a misleading truncated response.
+    Direct connections pin DNS at socket creation. Configured proxies are a
+    separate trust boundary: remote proxy DNS cannot be pinned by this client.
+
+    If max_bytes is set, an oversized response raises ResponseTooLarge instead
+    of returning a misleading truncated response. allow_private=True is an
+    explicit opt-out intended only for controlled environments.
     """
     if max_bytes is not None and (
         isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes <= 0
@@ -112,14 +199,14 @@ def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
     last_exc = None
     for attempt in range(retries + 1):
         current_url = url
-        session = _session()
+        session = _session(allow_private=allow_private)
         try:
             request_kwargs = dict(kwargs)
             for redirect_count in range(_MAX_REDIRECTS + 1):
                 _check_url(current_url, allow_private)
                 response = session.get(
                     current_url, timeout=timeout, verify=verify,
-                    proxies=_proxies(), stream=max_bytes is not None,
+                    proxies=_request_proxies(), stream=max_bytes is not None,
                     allow_redirects=False, **request_kwargs,
                 )
                 # Query parameters apply only to the initial URL, not each redirect.
@@ -184,10 +271,10 @@ def safe_post(url, timeout=None, allow_private=False, **kwargs):
     verify = CONFIG["http"]["verify_tls"]
     # POST redirects must be handled explicitly by callers after validating Location.
     kwargs.pop("allow_redirects", None)
-    session = _session()
+    session = _session(allow_private=allow_private)
     try:
         return session.post(
-            url, timeout=timeout, verify=verify, proxies=_proxies(),
+            url, timeout=timeout, verify=verify, proxies=_request_proxies(),
             allow_redirects=False, **kwargs,
         )
     finally:

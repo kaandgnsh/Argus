@@ -44,7 +44,7 @@ def test_redirect_target_is_revalidated(monkeypatch):
             pass
 
     session = FakeSession()
-    monkeypatch.setattr(http, "_session", lambda: session)
+    monkeypatch.setattr(http, "_session", lambda **_kwargs: session)
     monkeypatch.setattr(
         http, "is_safe_url",
         lambda url: (False, "non-public IP") if "127.0.0.1" in url else (True, "ok"),
@@ -82,7 +82,7 @@ def _install_fake_successful_response(monkeypatch, chunks):
             pass
 
     session = FakeSession()
-    monkeypatch.setattr(http, "_session", lambda: session)
+    monkeypatch.setattr(http, "_session", lambda **_kwargs: session)
     monkeypatch.setattr(http, "_check_url", lambda *_args: None)
     monkeypatch.setitem(http.CONFIG["http"], "retries", 0)
     return session
@@ -117,3 +117,39 @@ def test_max_bytes_must_be_a_positive_integer(monkeypatch, invalid_limit):
 
     with pytest.raises(ValueError, match="positive integer"):
         http.safe_get("https://public.example/data", max_bytes=invalid_limit)
+
+
+def test_connection_is_pinned_to_numeric_ip_and_restores_hostname(monkeypatch):
+    monkeypatch.setattr(http, "resolve_public_ip", lambda _host: "8.8.8.8")
+    monkeypatch.setattr(
+        http._HTTPConnection,
+        "_new_conn",
+        lambda connection: (connection.host, connection._dns_host),
+    )
+    connection = http._PinnedHTTPConnection("public.example", 80)
+
+    assert connection._new_conn() == ("8.8.8.8", "8.8.8.8")
+    assert connection.host == "public.example"
+    assert connection._dns_host == "public.example"
+
+
+def test_session_uses_pinned_adapters():
+    session = http._session()
+    try:
+        assert isinstance(session.get_adapter("http://public.example"), http._PinnedHTTPAdapter)
+        assert isinstance(session.get_adapter("https://public.example"), http._PinnedHTTPAdapter)
+    finally:
+        session.close()
+
+
+def test_request_proxy_settings_do_not_inherit_environment(monkeypatch):
+    monkeypatch.setitem(http.CONFIG["proxy"], "enabled", False)
+    assert http._request_proxies() == {"http": None, "https": None, "all": None}
+
+
+def test_allow_private_uses_standard_adapter_only_when_explicitly_requested():
+    session = http._session(allow_private=True)
+    try:
+        assert not isinstance(session.get_adapter("http://127.0.0.1"), http._PinnedHTTPAdapter)
+    finally:
+        session.close()
