@@ -153,3 +153,22 @@ def test_allow_private_uses_standard_adapter_only_when_explicitly_requested():
         assert not isinstance(session.get_adapter("http://127.0.0.1"), http._PinnedHTTPAdapter)
     finally:
         session.close()
+
+
+def test_safe_get_defaults_to_bounded_streaming(monkeypatch):
+    session = _install_fake_successful_response(monkeypatch, [b"small body"])
+
+    response = http.safe_get("https://public.example/data")
+
+    assert session.kwargs["stream"] is True
+    assert response._content == b"small body"
+    assert response._content_consumed is True
+
+
+def test_explicit_none_disables_response_size_limit(monkeypatch):
+    session = _install_fake_successful_response(monkeypatch, [b"unbounded"])
+
+    response = http.safe_get("https://public.example/data", max_bytes=None)
+
+    assert session.kwargs["stream"] is False
+    assert response is session.response

@@ -14,7 +14,7 @@ Please share only the minimum information needed to reproduce the issue. Allow t
 
 ## Network Security Boundary
 
-For direct HTTP(S) requests, ARGUS validates a URL and pins each new TCP connection to a numeric address resolved and checked immediately before connecting. This prevents the socket from performing a second hostname lookup after validation. The original hostname is retained for the HTTP Host header and TLS certificate/SNI checks.
+For direct HTTP(S) requests, ARGUS validates a URL and pins each new TCP connection to a numeric address resolved and checked immediately before connecting. This prevents the socket from performing a second hostname lookup after validation. The original hostname is retained for the HTTP Host header and TLS certificate/SNI checks. Response bodies are limited to 10 MiB by default; explicitly passing `max_bytes=None` disables this size cap and should be reserved for trusted content.
 
 Configured HTTP, SOCKS, or Tor proxies are a separate trust boundary. A remote-DNS proxy may resolve the destination outside ARGUS, so local DNS pinning cannot guarantee which address the proxy connects to. Use only a proxy you trust and understand. The explicit `allow_private=True` option opts out of URL validation and direct DNS pinning; reserve it for controlled environments.
 

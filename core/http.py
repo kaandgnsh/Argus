@@ -23,6 +23,7 @@ from core.logger import get_logger
 log = get_logger()
 _REDIRECT_CODES = {301, 302, 303, 307, 308}
 _MAX_REDIRECTS = 5
+DEFAULT_MAX_RESPONSE_BYTES = 10 * 1024 * 1024  # 10 MiB
 _SECRET_QUERY_KEYS = re.compile(r"(key|token|secret|password|auth|api.?key|access.?token)", re.I)
 
 
@@ -174,15 +175,16 @@ def _check_url(url, allow_private):
         raise UnsafeURL(f"blocked URL ({reason})")
 
 
-def safe_get(url, timeout=None, max_bytes=None, allow_private=False, **kwargs):
+def safe_get(url, timeout=None, max_bytes=DEFAULT_MAX_RESPONSE_BYTES, allow_private=False, **kwargs):
     """SSRF-protected GET; validates redirects and fails on oversized bodies.
 
     Direct connections pin DNS at socket creation. Configured proxies are a
     separate trust boundary: remote proxy DNS cannot be pinned by this client.
 
-    If max_bytes is set, an oversized response raises ResponseTooLarge instead
-    of returning a misleading truncated response. allow_private=True is an
-    explicit opt-out intended only for controlled environments.
+    Responses are limited to 10 MiB by default. An oversized response raises
+    ResponseTooLarge instead of returning truncated content. Pass max_bytes=None
+    only when an intentionally unbounded response is required. allow_private=True
+    opts out of URL checks and direct DNS pinning for controlled environments.
     """
     if max_bytes is not None and (
         isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes <= 0
