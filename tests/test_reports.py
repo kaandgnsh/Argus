@@ -109,3 +109,26 @@ def test_report_names_cannot_escape_output_directory(tmp_path, monkeypatch):
     path = reports.export_json({"ok": True}, name="../../outside")
     assert Path(path).parent == tmp_path
     assert Path(path).name == "outside.json"
+
+
+def test_markdown_export_escapes_untrusted_html_and_links(tmp_path, monkeypatch):
+    monkeypatch.setattr(reports, "REPORTS_DIR", str(tmp_path))
+    payload = {
+        "generated_at": "today",
+        "entities": [{
+            "type": "domain",
+            "value": '<script>alert(1)</script> ![tracking](https://example.invalid/pixel)&',
+            "source": "unit-test",
+            "confidence": "UNKNOWN",
+            "created_at": 1,
+        }],
+        "relations": [],
+        "cases": [],
+    }
+
+    path = reports.export_markdown(payload, name="markdown-escape")
+    markdown = Path(path).read_text(encoding="utf-8")
+
+    assert r"&lt;script&gt;alert\(1\)&lt;/script&gt;" in markdown
+    assert r"\!\[tracking\]\(https://example.invalid/pixel\)" in markdown
+    assert "&amp;" in markdown
