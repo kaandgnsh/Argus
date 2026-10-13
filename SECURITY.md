@@ -12,6 +12,12 @@ Use GitHub's private vulnerability reporting feature for this repository if it i
 
 Please share only the minimum information needed to reproduce the issue. Allow time for triage and a fix before publicly disclosing details.
 
+## Network Security Boundary
+
+For direct HTTP(S) requests, ARGUS validates a URL and pins each new TCP connection to a numeric address resolved and checked immediately before connecting. This prevents the socket from performing a second hostname lookup after validation. The original hostname is retained for the HTTP Host header and TLS certificate/SNI checks.
+
+Configured HTTP, SOCKS, or Tor proxies are a separate trust boundary. A remote-DNS proxy may resolve the destination outside ARGUS, so local DNS pinning cannot guarantee which address the proxy connects to. Use only a proxy you trust and understand. The explicit `allow_private=True` option opts out of URL validation and direct DNS pinning; reserve it for controlled environments.
+
 ## Data Handling
 
 ARGUS may store locally collected identifiers, entities, relationships, reports, logs, and caches. Some modules may send queries to configured third-party providers. Treat generated artifacts and provider credentials as sensitive, and review them before sharing.
