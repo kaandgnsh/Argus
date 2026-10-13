@@ -133,14 +133,18 @@ def test_connection_is_pinned_to_numeric_ip_and_restores_hostname(monkeypatch):
     assert connection._dns_host == "public.example"
 
 
-def test_session_uses_pinned_adapters_and_ignores_ambient_proxy_env():
+def test_session_uses_pinned_adapters():
     session = http._session()
     try:
-        assert session.trust_env is False
         assert isinstance(session.get_adapter("http://public.example"), http._PinnedHTTPAdapter)
         assert isinstance(session.get_adapter("https://public.example"), http._PinnedHTTPAdapter)
     finally:
         session.close()
+
+
+def test_request_proxy_settings_do_not_inherit_environment(monkeypatch):
+    monkeypatch.setitem(http.CONFIG["proxy"], "enabled", False)
+    assert http._request_proxies() == {"http": None, "https": None, "all": None}
 
 
 def test_allow_private_uses_standard_adapter_only_when_explicitly_requested():
