@@ -230,8 +230,22 @@ def _md(value):
         return ""
     if isinstance(value, (dict, list, tuple)):
         value = json.dumps(value, ensure_ascii=False, default=str)
-    return (str(value).replace("\\", "\\\\").replace("|", "\\|")
-            .replace("\r", " ").replace("\n", "<br>").replace(chr(96), "\\" + chr(96)))
+    text = str(value)
+    # Escape HTML before adding our own trusted <br> line-break markup.
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    # Prevent untrusted values from creating Markdown links/images or table cells.
+    return (
+        text.replace("\\", "\\\\")
+        .replace("|", "\\|")
+        .replace("[", "\\[")
+        .replace("]", "\\]")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+        .replace("!", "\\!")
+        .replace("\r", " ")
+        .replace("\n", "<br>")
+        .replace(chr(96), "\\" + chr(96))
+    )
 
 
 def _markdown_table(headers, rows):
