@@ -129,6 +129,6 @@ def test_markdown_export_escapes_untrusted_html_and_links(tmp_path, monkeypatch)
     path = reports.export_markdown(payload, name="markdown-escape")
     markdown = Path(path).read_text(encoding="utf-8")
 
-    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in markdown
+    assert r"&lt;script&gt;alert\(1\)&lt;/script&gt;" in markdown
     assert r"\!\[tracking\]\(https://example.invalid/pixel\)" in markdown
     assert "&amp;" in markdown
