@@ -16,6 +16,7 @@ from core.colors import Kırmızı, Yeşil, Sarı, Beyaz, Mor, Cyan, Bitir
 from core.http import safe_get
 from core import database as db
 from providers import registry
+from core.config import root_path
 
 
 RTYPES = ["A", "AAAA", "MX", "NS", "TXT", "SOA", "CAA"]
@@ -248,9 +249,9 @@ def _write_subdomains_to_files(domain, subs, user_log_path=None):
 
     # 1. reports/subdomains_<domain>_<ts>.txt — timestamp'li snapshot
     try:
-        os.makedirs("reports", exist_ok=True)
+        os.makedirs(root_path("reports"), exist_ok=True)
         safe_domain = re.sub(r"[^A-Za-z0-9._\-]", "_", domain)
-        path = os.path.join("reports", f"subdomains_{safe_domain}_{ts}.txt")
+        path = os.path.join(root_path("reports"), f"subdomains_{safe_domain}_{ts}.txt")
         with open(path, "w", encoding="utf-8") as f:
             f.write(header + "\n")
             for s in subs:
@@ -261,8 +262,8 @@ def _write_subdomains_to_files(domain, subs, user_log_path=None):
 
     # 2. logs/subdomains.log — kümülatif append (her sorgu eklenir)
     try:
-        os.makedirs("logs", exist_ok=True)
-        path = os.path.join("logs", "subdomains.log")
+        os.makedirs(root_path("logs"), exist_ok=True)
+        path = os.path.join(root_path("logs"), "subdomains.log")
         with open(path, "a", encoding="utf-8") as f:
             f.write("\n" + header + "\n")
             for s in subs:

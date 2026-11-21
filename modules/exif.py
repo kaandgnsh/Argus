@@ -26,6 +26,7 @@ from pathlib import Path
 from core.colors import Kırmızı, Yeşil, Sarı, Beyaz, Mor, Cyan, Bitir
 from core.deps import has
 from core.security import is_safe_path
+from core.config import root_path
 
 
 # ===== BACKEND SEÇİMİ =====
@@ -308,7 +309,7 @@ def _print_category(name, tags, indent=2, limit=40):
 
 
 def _save_thumbnail(path, backend, p):
-    out_dir = "reports"
+    out_dir = root_path("reports")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"thumb_{p.stem}.jpg")
 

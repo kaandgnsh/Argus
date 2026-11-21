@@ -112,6 +112,9 @@ def _interactive():
                 save_thumb = (ui.ask("Gömülü thumbnail'i kaydet? [y/N]: ",
                                      default="n") or "n").lower() == "y"
                 exif.run(path, save_thumb=save_thumb)
+            elif choice == "16":
+                from modules import nickname
+                nickname.selftest()
             elif choice == "0":
                 ui.about(version)
                 ui.pause()
@@ -164,7 +167,7 @@ def _cli(args):
         args.phone, args.username, args.email, args.domain, args.dns,
         args.ip, args.url, args.hash_value, args.dork, args.search,
         args.github, args.threat, args.file_path, args.correlate,
-        args.exif_path,
+        args.exif_path, args.nick_selftest,
     ])
     if only_export and not has_target:
         _export_all(args)
@@ -174,9 +177,13 @@ def _cli(args):
     if args.phone:
         from modules import phone
         phone.run(args.phone); handled = True
+    plats = args.platforms.split(",") if args.platforms else None
     if args.username:
         from modules import nickname
-        nickname.run(args.username); handled = True
+        nickname.run(args.username, platforms=plats); handled = True
+    if args.nick_selftest:
+        from modules import nickname
+        nickname.selftest(platforms=plats); handled = True
     if args.email:
         from modules import email as email_mod
         email_mod.run(args.email); handled = True
@@ -248,4 +255,4 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print()
-        sys.exit(130)
+        sys.exit(130)

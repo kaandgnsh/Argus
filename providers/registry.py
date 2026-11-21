@@ -17,6 +17,8 @@ def register(cls):
 
 
 def _load_conf(path="config/providers.json"):
+    from core.config import root_path
+    path = root_path(path)
     if not os.path.exists(path):
         return {}
     try:

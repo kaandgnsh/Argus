@@ -11,9 +11,10 @@ import re
 from datetime import datetime
 
 from core import database as db
+from core.config import root_path
 
 
-REPORTS_DIR = "reports"
+REPORTS_DIR = root_path("reports")
 
 
 def _ensure_dir():

@@ -13,11 +13,12 @@ import os
 import sqlite3
 import threading
 import time
+from core.config import root_path
 
 
 _LOCK = threading.Lock()
 _CONN = None
-_DB_PATH = "data/argus.sqlite"
+_DB_PATH = root_path("data/argus.sqlite")
 
 
 def _ensure_relations_schema(conn):

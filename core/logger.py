@@ -6,7 +6,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-from core.config import CONFIG
+from core.config import CONFIG, root_path
 
 
 _LOGGER = None
@@ -17,7 +17,7 @@ def get_logger(name="ARGUS"):
     if _LOGGER is not None:
         return _LOGGER
 
-    log_dir = CONFIG["logging"]["dir"]
+    log_dir = root_path(CONFIG["logging"]["dir"])
     os.makedirs(log_dir, exist_ok=True)
 
     level = getattr(logging, CONFIG["logging"].get("level", "INFO").upper(), logging.INFO)

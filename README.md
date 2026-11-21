@@ -21,11 +21,16 @@
 
 ARGUS is an educational software and security-research project. It is not a guarantee that a result is correct, complete, current, or legally appropriate to collect.
 
+<p align="center">
+  <img src="docs/ekran/menu.webp" alt="ARGUS start screen and menu" width="520">
+</p>
+
 > [!WARNING]
 > **Use responsibly.** Run ARGUS only on your own data, in a controlled lab, or against targets for which you have explicit authorization. Phone numbers, email addresses, usernames, IP addresses, and related identifiers may be sent to third-party providers. Public availability does not grant unlimited permission to collect, correlate, or republish information. Do not use ARGUS for stalking, harassment, unauthorized access, or evasion of security controls.
 
 ## Features
 
+- **Username search on 39 platforms:** per-platform calibrated rules, "not found" verified against a known account (canary), and a built-in self-test. See [Username search](#username-search).
 - **Multiple target types:** usernames, email addresses, phone numbers, domains/DNS, IP addresses, URLs, hashes, GitHub profiles, threat indicators, and local files.
 - **Provider-based architecture:** modular DNS, RDAP, Certificate Transparency, and threat-intelligence lookups.
 - **Local database:** entities, relationships, evidence, and cases are stored in SQLite.
@@ -126,6 +131,8 @@ python3 argus.py -ip 8.8.8.8 --no-map
 
 # Username, email, and public GitHub profile lookups
 python3 argus.py -username kaandgnsh
+python3 argus.py -username kaandgnsh --platforms Instagram,TikTok,X
+python3 argus.py --nick-selftest
 python3 argus.py -email user@example.com
 python3 argus.py -github torvalds
 
@@ -151,6 +158,8 @@ python3 argus.py --export-all
 |:--|:--|
 | `-phone NUMBER` | Phone-number analysis; may use configured third-party providers. |
 | `-username USER`, `-u USER` | Username research across supported platforms. |
+| `--platforms A,B` | Limit the username search to the listed platforms (e.g. `Instagram,TikTok,X`). |
+| `--nick-selftest` | Check every username rule: the platform's known account must be found and a random name must not. |
 | `-email EMAIL` | Email-related intelligence. |
 | `-domain DOMAIN` | Domain intelligence and subdomain information. |
 | `-dns DOMAIN` | DNS-focused domain lookup. |
@@ -188,6 +197,25 @@ python3 argus.py --list-tools
 ```
 
 Read the command shown by ARGUS before approving any external-tool installation.
+
+## Username search
+
+<p align="center">
+  <img src="docs/ekran/ara.webp" alt="Username search across 39 platforms" width="900">
+</p>
+
+How a result is decided:
+
+- **Calibrated rules:** for each platform, the response for an existing account was compared with the response for a non-existent one. The distinguishing status code or page marker became the rule. Where the HTML page cannot tell them apart, a public API endpoint is queried instead (GitLab, Bluesky, Lichess, Kick, Steam XML, Medium RSS). The link shown is always the profile page.
+- **Canary check:** **NOT FOUND** is reported only if a known account on the same platform (the canary) is still detected. If the canary is not detected, the platform is rate-limiting or has changed its pages, and the result becomes **UNKNOWN**.
+- **Rate limits:** on 429/403 or bot-check pages, ARGUS waits longer and retries. It does not rotate IP addresses or use proxies to get around limits.
+- **Manual platforms:** platforms that cannot be checked automatically (Reddit, Facebook, Threads, PyPI, Replit, ArtStation, Behance, Notion, Last.fm, Letterboxd, Spotify) are listed as **MANUAL** with a link to open in a browser.
+
+Rules can break when a platform changes its pages. The self-test (menu item 16) shows which ones still work:
+
+<p align="center">
+  <img src="docs/ekran/test.webp" alt="Username self-test: canary found, random name not found on every platform" width="760">
+</p>
 
 ## Privacy and Security
 

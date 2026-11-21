@@ -30,6 +30,12 @@ def build_parser(version):
                    help="Görüntü dosyasından tüm EXIF metadata'yı çıkar")
     g.add_argument("-correlate", metavar="QUERY")
 
+    n = p.add_argument_group("Nick arama seçenekleri")
+    n.add_argument("--platforms", metavar="A,B",
+                   help="Yalnız bu platformlar (ör. Instagram,TikTok,X)")
+    n.add_argument("--nick-selftest", action="store_true",
+                   help="Her platformda kanarya VAR / rastgele ad YOK kontrolü")
+
     e = p.add_argument_group("Export")
     e.add_argument("--export-json", action="store_true",
                    help="Sonuçları JSON olarak kaydet")
@@ -68,4 +74,4 @@ def build_parser(version):
 
 
 def parse(argv=None, version="0.1.0"):
-    return build_parser(version).parse_args(argv)
+    return build_parser(version).parse_args(argv)

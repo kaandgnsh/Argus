@@ -36,6 +36,7 @@ MENU = f"""
 {Kırmızı}[13]{Bitir} CORRELATION
 {Kırmızı}[14]{Bitir} CASES
 {Kırmızı}[15]{Bitir} EXIF EXTRACTOR  (Görüntü Metadata)
+{Kırmızı}[16]{Bitir} NICK SELF-TEST  (Platform kurallarını doğrula)
 {Kırmızı}[ 0]{Bitir} Hakkında
 {Kırmızı}[99]{Bitir} Çıkış
 """
@@ -73,4 +74,4 @@ def ask(prompt, default=None):
         v = input(f"{Beyaz}{prompt}{Yeşil}").strip()
     except (EOFError, KeyboardInterrupt):
         return default
-    return v or default
+    return v or default

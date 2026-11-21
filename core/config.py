@@ -6,6 +6,16 @@ import json
 import os
 
 
+# Proje kökü. config/, data/, cache/, logs/, reports/ buraya göre çözülür;
+# argus hangi klasörden çalıştırılırsa çalıştırılsın oralarda klasör açılmaz.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def root_path(path):
+    """Göreli yolu proje köküne bağlar; mutlak yolu olduğu gibi döner."""
+    return path if os.path.isabs(path) else os.path.join(ROOT, path)
+
+
 _DEFAULT = {
     "app": {
         "name": "ARGUS",
@@ -42,6 +52,7 @@ def _deep_merge(base, override):
 
 
 def load(path="config/config.json"):
+    path = root_path(path)
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:

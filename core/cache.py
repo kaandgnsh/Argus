@@ -11,7 +11,7 @@ import sqlite3
 import threading
 import time
 
-from core.config import CONFIG
+from core.config import CONFIG, root_path
 
 
 _LOCK = threading.Lock()
@@ -22,7 +22,7 @@ def _conn():
     global _CONN
     if _CONN is not None:
         return _CONN
-    path = CONFIG["cache"]["path"]
+    path = root_path(CONFIG["cache"]["path"])
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     conn = sqlite3.connect(path, check_same_thread=False)
     conn.execute(

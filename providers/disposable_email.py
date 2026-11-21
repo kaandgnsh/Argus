@@ -10,7 +10,9 @@ from providers.base import Provider, ProviderUnavailable
 from providers.registry import register
 
 
-LIST_PATH = os.path.join("data", "disposable_domains.txt")
+from core.config import root_path
+
+LIST_PATH = root_path(os.path.join("data", "disposable_domains.txt"))
 REMOTE_URL = (
     "https://raw.githubusercontent.com/disposable-email-domains/"
     "disposable-email-domains/master/disposable_email_blocklist.conf"
