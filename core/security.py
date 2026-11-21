@@ -40,10 +40,16 @@ def _resolve(host):
 
 
 def resolve_public_ip(host):
-    """Resolve a host to one globally routable IP or raise ValueError.
+    """Resolve a host to one globally routable IP (IPv4 preferred) or raise ValueError."""
+    return resolve_public_ips(host)[0]
+
+
+def resolve_public_ips(host):
+    """Resolve a host to all its globally routable IPs or raise ValueError.
 
     Used immediately before opening a direct TCP connection. The caller then
-    connects to the numeric address, avoiding a second DNS lookup by the socket.
+    connects to a numeric address, avoiding a second DNS lookup by the socket.
+    Any non-public answer rejects the whole host (DNS rebinding defense).
     """
     host = (host or "").strip().lower().rstrip(".")
     if not host:
@@ -57,7 +63,7 @@ def resolve_public_ip(host):
     if literal is not None:
         if is_private_ip(str(literal)):
             raise ValueError("non-public IP")
-        return str(literal)
+        return [str(literal)]
 
     try:
         addresses = _resolve(host)
@@ -69,8 +75,9 @@ def resolve_public_ip(host):
     if any(is_private_ip(address) for address in addresses):
         raise ValueError("host resolves to a non-public IP")
 
-    # _resolve returns a set; make address selection deterministic for tests.
-    return sorted(addresses)[0]
+    # _resolve returns a set; order deterministically, IPv4 first. Many networks
+    # have no IPv6 route, so an IPv6-first choice would fail to connect.
+    return sorted(addresses, key=lambda a: (ipaddress.ip_address(a).version, ipaddress.ip_address(a)))
 
 
 def is_safe_url(url):

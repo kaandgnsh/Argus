@@ -61,6 +61,14 @@ def test_resolve_public_ip_rejects_mixed_public_and_private_answers(monkeypatch)
         resolve_public_ip("rebind.example")
 
 
+def test_resolve_public_ips_prefers_ipv4(monkeypatch):
+    monkeypatch.setattr(
+        "core.security._resolve",
+        lambda _host: {"2600:9000::1", "3.3.3.3", "18.1.1.1"},
+    )
+    assert resolve_public_ip("dual.example") == "3.3.3.3"
+
+
 def test_dns_rebinding_is_rechecked_before_connection(monkeypatch):
     answers = iter([{"8.8.8.8"}, {"127.0.0.1"}])
     monkeypatch.setattr("core.security._resolve", lambda _host: next(answers))

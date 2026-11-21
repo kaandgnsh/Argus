@@ -209,6 +209,7 @@ How a result is decided:
 - **Calibrated rules:** for each platform, the response for an existing account was compared with the response for a non-existent one. The distinguishing status code or page marker became the rule. Where the HTML page cannot tell them apart, a public API endpoint is queried instead (GitLab, Bluesky, Lichess, Kick, Steam XML, Medium RSS). The link shown is always the profile page.
 - **Canary check:** **NOT FOUND** is reported only if a known account on the same platform (the canary) is still detected. If the canary is not detected, the platform is rate-limiting or has changed its pages, and the result becomes **UNKNOWN**.
 - **Rate limits:** on 429/403 or bot-check pages, ARGUS waits longer and retries. It does not rotate IP addresses or use proxies to get around limits.
+- **Same HTTP safeguards:** every probe goes through the shared ARGUS HTTP client (URL and redirect checks, DNS pinning, response size limit). Only WordPress may follow an HTTPS-to-HTTP redirect, because blogs on custom domains often use plain HTTP.
 - **Manual platforms:** platforms that cannot be checked automatically (Reddit, Facebook, Threads, PyPI, Replit, ArtStation, Behance, Notion, Last.fm, Letterboxd, Spotify) are listed as **MANUAL** with a link to open in a browser.
 
 Rules can break when a platform changes its pages. The self-test (menu item 16) shows which ones still work:

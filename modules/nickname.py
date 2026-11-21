@@ -36,6 +36,7 @@ import requests
 
 from core.colors import Kırmızı, Yeşil, Sarı, Beyaz, Mor, Cyan, Bitir
 from core.config import CONFIG
+from core.http import new_session, safe_get, UnsafeURL, ResponseTooLarge
 from core import database as db
 
 
@@ -179,7 +180,9 @@ PLATFORMS = [
     # ---- Blog ----
     {"name": "WordPress", "url": "https://{u}.wordpress.com", "canary": "matt",
      "found": {"status": [200], "none_final": ["wordpress.com/typo"]},
-     "missing": {"final": ["wordpress.com/typo"]}},
+     "missing": {"final": ["wordpress.com/typo"]},
+     # Özel alan adına yönlenen bloglar (matt -> http://matt.blog) HTTP'ye iner.
+     "allow_downgrade": True},
     {"name": "Blogger", "url": "https://{u}.blogspot.com", "canary": "googleblog",
      "found": {"status": [200]}, "missing": {"status": [404]}},
 ]
@@ -306,7 +309,7 @@ class Probe:
     def _session(self):
         s = getattr(self._sess, "s", None)
         if s is None:
-            s = requests.Session()
+            s = new_session()
             s.headers.update({
                 "User-Agent": _UA[self.p.get("ua", "desktop")],
                 "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
@@ -334,9 +337,16 @@ class Probe:
         url = (self.p.get("probe") or self.p["url"]).format(u=username)
         self._pace()
         try:
-            r = self._session().get(url, timeout=self.timeout, allow_redirects=True)
+            r = safe_get(url, timeout=self.timeout, session=self._session(),
+                         allow_downgrade=self.p.get("allow_downgrade", False))
         except requests.RequestException as e:
             return None, LIMIT_PREFIX + "ağ hatası " + type(e).__name__, None
+        except UnsafeURL as e:
+            if "DNS" in str(e):      # anlık çözümleme hatası: ağ hatası gibi tekrar dene
+                return None, LIMIT_PREFIX + "ağ hatası DNS", None
+            return None, f"engellendi: {e}", None
+        except ResponseTooLarge:
+            return None, "cevap çok büyük", None
         body = r.text
         res, why = verdict(self.p, username, r.status_code, body, r.url)
         return res, why, (_title(body) if res else None)

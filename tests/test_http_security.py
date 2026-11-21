@@ -120,7 +120,7 @@ def test_max_bytes_must_be_a_positive_integer(monkeypatch, invalid_limit):
 
 
 def test_connection_is_pinned_to_numeric_ip_and_restores_hostname(monkeypatch):
-    monkeypatch.setattr(http, "resolve_public_ip", lambda _host: "8.8.8.8")
+    monkeypatch.setattr(http, "resolve_public_ips", lambda _host: ["8.8.8.8"])
     monkeypatch.setattr(
         http._HTTPConnection,
         "_new_conn",
@@ -172,3 +172,65 @@ def test_explicit_none_disables_response_size_limit(monkeypatch):
 
     assert session.kwargs["stream"] is False
     assert response is session.response
+
+
+def test_connection_falls_back_to_next_pinned_ip(monkeypatch):
+    monkeypatch.setattr(http, "resolve_public_ips", lambda _host: ["2001:db8::1", "8.8.8.8"])
+
+    def fake_new_conn(connection):
+        if ":" in connection.host:
+            raise http.NewConnectionError(connection, "Network is unreachable")
+        return connection.host
+
+    monkeypatch.setattr(http._HTTPConnection, "_new_conn", fake_new_conn)
+    connection = http._PinnedHTTPConnection("public.example", 80)
+
+    assert connection._new_conn() == "8.8.8.8"
+    assert connection.host == "public.example"
+
+
+class _FakeResponse:
+    def __init__(self, status, location=None):
+        self.status_code = status
+        self.headers = {"Location": location} if location else {}
+        self.closed = False
+
+    def close(self):
+        self.closed = True
+
+    def iter_content(self, _size):
+        return iter([b"ok"])
+
+
+class _FakeSession:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.closed = False
+
+    def get(self, url, **_kwargs):
+        return self.responses.pop(0)
+
+    def close(self):
+        self.closed = True
+
+
+def test_safe_get_reuses_caller_session_without_closing(monkeypatch):
+    monkeypatch.setattr(http, "_check_url", lambda *_args: None)
+    session = _FakeSession([_FakeResponse(200)])
+
+    response = http.safe_get("https://public.example/", session=session)
+
+    assert response.status_code == 200
+    assert session.closed is False
+
+
+def test_https_downgrade_needs_explicit_opt_in(monkeypatch):
+    monkeypatch.setattr(http, "_check_url", lambda *_args: None)
+    redirect = lambda: _FakeResponse(301, "http://public.example/")
+
+    with pytest.raises(http.UnsafeURL, match="downgrade"):
+        http.safe_get("https://public.example/", session=_FakeSession([redirect()]))
+
+    session = _FakeSession([redirect(), _FakeResponse(200)])
+    response = http.safe_get("https://public.example/", session=session, allow_downgrade=True)
+    assert response.status_code == 200

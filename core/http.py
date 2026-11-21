@@ -13,10 +13,11 @@ from requests.adapters import HTTPAdapter
 from urllib3.connection import HTTPConnection as _HTTPConnection
 from urllib3.connection import HTTPSConnection as _HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
 from urllib3.poolmanager import PoolManager
 
 from core.config import CONFIG
-from core.security import is_safe_url, resolve_public_ip
+from core.security import is_safe_url, resolve_public_ips
 from core.logger import get_logger
 
 
@@ -44,24 +45,26 @@ class _PinDNSMixin:
         original_host = self.host
         original_dns_host = getattr(self, "_dns_host", original_host)
         try:
-            try:
-                pinned_ip = resolve_public_ip(original_host)
-            except (OSError, ValueError) as exc:
-                raise UnsafeURL(f"blocked connection target ({exc})") from None
+            pinned_ips = resolve_public_ips(original_host)
+        except (OSError, ValueError) as exc:
+            raise UnsafeURL(f"blocked connection target ({exc})") from None
 
+        # Try every vetted address (IPv4 first) so a host whose first answer is
+        # unreachable, e.g. IPv6 without an IPv6 route, still connects.
+        last_exc = None
+        for pinned_ip in pinned_ips:
             # urllib3 uses _dns_host for the TCP socket and host for TLS SNI/cert checks.
             # Change both only during socket creation; restore the hostname before TLS.
             self.host = pinned_ip
             self._dns_host = pinned_ip
             try:
                 return super()._new_conn()
+            except (NewConnectionError, ConnectTimeoutError) as exc:
+                last_exc = exc
             finally:
                 self.host = original_host
                 self._dns_host = original_dns_host
-        except Exception:
-            self.host = original_host
-            self._dns_host = original_dns_host
-            raise
+        raise last_exc
 
 
 class _PinnedHTTPConnection(_PinDNSMixin, _HTTPConnection):
@@ -155,6 +158,11 @@ def _request_proxies():
 
 
 def _session(allow_private=False):
+    return new_session(allow_private)
+
+
+def new_session(allow_private=False):
+    """Session with ARGUS defaults and DNS pinning, reusable via safe_get(session=...)."""
     s = requests.Session()
     s.headers.update({
         "User-Agent": CONFIG["app"]["user_agent"],
@@ -175,7 +183,8 @@ def _check_url(url, allow_private):
         raise UnsafeURL(f"blocked URL ({reason})")
 
 
-def safe_get(url, timeout=None, max_bytes=DEFAULT_MAX_RESPONSE_BYTES, allow_private=False, **kwargs):
+def safe_get(url, timeout=None, max_bytes=DEFAULT_MAX_RESPONSE_BYTES, allow_private=False,
+             session=None, allow_downgrade=False, **kwargs):
     """SSRF-protected GET; validates redirects and fails on oversized bodies.
 
     Direct connections pin DNS at socket creation. Configured proxies are a
@@ -185,6 +194,12 @@ def safe_get(url, timeout=None, max_bytes=DEFAULT_MAX_RESPONSE_BYTES, allow_priv
     ResponseTooLarge instead of returning truncated content. Pass max_bytes=None
     only when an intentionally unbounded response is required. allow_private=True
     opts out of URL checks and direct DNS pinning for controlled environments.
+
+    session: optional caller-owned session from new_session(); it is reused for
+    keep-alive and is not closed here. Its allow_private setting must match.
+
+    allow_downgrade=True lets an HTTPS request follow a redirect to HTTP. Use it
+    only for public pages whose content is not trusted, e.g. a blog custom domain.
     """
     if max_bytes is not None and (
         isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes <= 0
@@ -201,12 +216,13 @@ def safe_get(url, timeout=None, max_bytes=DEFAULT_MAX_RESPONSE_BYTES, allow_priv
     last_exc = None
     for attempt in range(retries + 1):
         current_url = url
-        session = _session(allow_private=allow_private)
+        own_session = session is None
+        sess = _session(allow_private=allow_private) if own_session else session
         try:
             request_kwargs = dict(kwargs)
             for redirect_count in range(_MAX_REDIRECTS + 1):
                 _check_url(current_url, allow_private)
-                response = session.get(
+                response = sess.get(
                     current_url, timeout=timeout, verify=verify,
                     proxies=_request_proxies(), stream=max_bytes is not None,
                     allow_redirects=False, **request_kwargs,
@@ -226,7 +242,9 @@ def safe_get(url, timeout=None, max_bytes=DEFAULT_MAX_RESPONSE_BYTES, allow_priv
                 next_url = urljoin(current_url, location)
                 _check_url(next_url, allow_private)
                 # Do not allow HTTPS requests to silently downgrade to HTTP.
-                if urlsplit(current_url).scheme.lower() == "https" and urlsplit(next_url).scheme.lower() != "https":
+                if (not allow_downgrade
+                        and urlsplit(current_url).scheme.lower() == "https"
+                        and urlsplit(next_url).scheme.lower() != "https"):
                     response.close()
                     raise UnsafeURL("HTTPS downgrade redirect blocked")
                 response.close()
@@ -261,7 +279,8 @@ def safe_get(url, timeout=None, max_bytes=DEFAULT_MAX_RESPONSE_BYTES, allow_priv
                 continue
             raise
         finally:
-            session.close()
+            if own_session:
+                sess.close()
     if last_exc:
         raise last_exc
 
